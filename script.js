@@ -16,14 +16,28 @@ let tasks = []; // 將用於儲存和更新任務狀態
 // === 核心功能：讀取/儲存/渲染 ===
 
 // 1. 從 LocalStorage 載入進度
+// 在 script.js 檔案中找到 loadProgress 函數
 function loadProgress() {
     const savedProgress = localStorage.getItem(STORAGE_KEY);
+    const today = new Date().toDateString();
+    
     if (savedProgress) {
-        // 合併儲存的進度到初始任務列表中
         const savedTasks = JSON.parse(savedProgress);
         tasks = initialTasks.map(initialTask => {
             const savedTask = savedTasks.find(t => t.name === initialTask.name);
-            return savedTask ? savedTask : initialTask;
+            
+            // 如果有儲存的任務，則使用儲存的資料，但確保 lastCompletedDate 存在
+            if (savedTask) {
+                // 如果上次完成日期不是今天，則解鎖 Checkbox
+                if (savedTask.lastCompletedDate !== today) {
+                    savedTask.checkedToday = false;
+                } else {
+                    savedTask.checkedToday = true;
+                }
+                return { ...initialTask, ...savedTask };
+            } else {
+                return initialTask;
+            }
         });
     } else {
         tasks = initialTasks;
@@ -36,15 +50,48 @@ function saveProgress() {
 }
 
 // 3. 渲染表格
+// 在 script.js 檔案中找到 renderTasks 函數
 function renderTasks() {
-    TABLE_BODY.innerHTML = ''; // 清空舊內容
-    tasks.forEach((task, index) => {
+    TABLE_BODY.innerHTML = ''; 
+    const today = new Date().toDateString();
+
+    // 1. 過濾任務：分成今日待辦 (Pending) 和 今日已完成 (Completed)
+    const pendingTasks = tasks.filter(task => 
+        task.totalSessions === null || task.completed < task.totalSessions
+    ).sort((a, b) => a.name.localeCompare(b.name));
+
+    const completedToday = pendingTasks.filter(task => task.lastCompletedDate === today);
+    const pendingToday = pendingTasks.filter(task => task.lastCompletedDate !== today);
+    
+    const allTasksToRender = [...pendingToday, ...completedToday];
+    
+    let isTodayCompletedSection = false;
+    let completedSectionHeaderRendered = false;
+
+    allTasksToRender.forEach((task, index) => {
         const row = TABLE_BODY.insertRow();
-        // 檢查是否已達成目標 (如果目標為 null 則不檢查)
-        const isGoalAchieved = task.totalSessions !== null && task.completed >= task.totalSessions;
+        const isCompletedGoal = task.totalSessions !== null && task.completed >= task.totalSessions;
+        const isCompletedToday = task.lastCompletedDate === today && !isCompletedGoal;
         
-        // 如果已達成目標，就將該列標記為完成樣式
-        if (isGoalAchieved) {
+        // 判斷是否要開始渲染「今日已完成」部分
+        if (isCompletedToday && !isTodayCompletedSection) {
+            isTodayCompletedSection = true;
+        }
+
+        // 渲染「今日已完成」的標題 (只渲染一次)
+        if (isTodayCompletedSection && !completedSectionHeaderRendered) {
+             const headerRow = TABLE_BODY.insertRow();
+             const headerCell = headerRow.insertCell();
+             headerCell.colSpan = 4;
+             headerCell.innerHTML = '<h2>✨ 今日已完成任務 (完成任務的提醒阿姨蓋章!)</h2>';
+             headerCell.style.textAlign = 'center';
+             headerCell.style.backgroundColor = '#d3f9d3';
+             completedSectionHeaderRendered = true;
+        }
+
+
+        // 設置列的樣式
+        if (isCompletedGoal || isCompletedToday) {
             row.classList.add('task-completed');
         }
 
@@ -66,9 +113,19 @@ function renderTasks() {
         
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.checked = false; // 每天重置為未打勾
-        checkbox.dataset.index = index; // 記錄任務的索引
-        checkbox.disabled = isGoalAchieved; // 達成目標後不能再打勾
+        checkbox.dataset.index = tasks.findIndex(t => t.name === task.name); // 用原始索引
+        
+        // 設置 Checkbox 狀態：是否已達成目標或今日已完成
+        if (isCompletedGoal) {
+            checkbox.checked = true;
+            checkbox.disabled = true;
+        } else if (isCompletedToday) {
+            checkbox.checked = true;
+            checkbox.disabled = true;
+        } else {
+            checkbox.checked = false;
+            checkbox.disabled = false;
+        }
         
         checkbox.addEventListener('change', handleCompletion);
         checkboxCell.appendChild(checkbox);
@@ -76,30 +133,40 @@ function renderTasks() {
 }
 
 // 4. 處理完成打勾的邏輯 (核心功能)
+// 在 script.js 檔案中找到 handleCompletion 函數
 function handleCompletion(event) {
     const checkbox = event.target;
     const index = parseInt(checkbox.dataset.index);
     const task = tasks[index];
+    const today = new Date().toDateString(); // 取得今天的日期字串
 
-    // 只有在打勾時才執行鼓勵和計數
-    if (checkbox.checked) {
-        task.completed += 1; // 完成次數 + 1
-        saveProgress();
-        
-        // 顯示鼓勵話語
-        showEncouragement(task);
-        
-        // 重新渲染表格，讓進度更新
-        // 因為鼓勵訊息會覆蓋，這裡不需要立即重新渲染表格，但可以確保狀態更新
-        setTimeout(() => {
-             renderTasks(); // 延遲一下再重新渲染，讓鼓勵話語停留
-             PROGRESS_MESSAGE.textContent = '任務提醒 | 完成任務的提醒阿姨 👵'; // 重置頂部訊息
-        }, 3000); 
+    // 檢查任務是否已在今天完成過
+    if (task.lastCompletedDate === today) {
+        // 如果今天已經完成，但有人試圖再次點擊（理論上應該被 disabled），則阻止計數
+        checkbox.checked = true; // 確保它保持勾選狀態
+        checkbox.disabled = true; // 鎖定
+        return;
     }
     
-    // 每次點擊後都將 checkbox 重置為未勾選，模擬每天重新開始
-    // 讓使用者知道這次的進度已經被紀錄了
-    checkbox.checked = false; 
+    // 只有在從未勾選變成勾選時才執行計數
+    if (checkbox.checked) {
+        task.completed += 1; // 完成次數 + 1
+        task.lastCompletedDate = today; // 紀錄完成日期
+        
+        saveProgress(); // 儲存進度
+        
+        // 鎖定 Checkbox，表示今日已完成此項
+        checkbox.disabled = true; 
+        
+        showEncouragement(task); // 顯示鼓勵話語
+        
+        // 延遲幾秒後重新渲染表格，將已完成任務移至下方
+        setTimeout(() => {
+             renderTasks(); 
+             // 重置頂部訊息，顯示今日日期
+             PROGRESS_MESSAGE.textContent = `任務提醒 | ${today} 的學習計畫`; 
+        }, 3000); 
+    }
 }
 
 
@@ -126,6 +193,11 @@ function showEncouragement(task) {
     PROGRESS_MESSAGE.innerHTML = message;
 }
 
-// === 程式碼啟動點 ===
+
+// === 程式碼啟動點 (在 script.js 的最底部) ===
 loadProgress();
+
+// 新增這行：在載入後立即更新頂部訊息為今日日期
+PROGRESS_MESSAGE.textContent = `任務提醒 | ${new Date().toDateString()} 的學習計畫`; 
+
 renderTasks();
