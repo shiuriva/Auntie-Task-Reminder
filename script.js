@@ -16,7 +16,6 @@ let tasks = []; // 將用於儲存和更新任務狀態
 // === 核心功能：讀取/儲存/渲染 ===
 
 // 1. 從 LocalStorage 載入進度
-// 在 script.js 檔案中找到 loadProgress 函數
 function loadProgress() {
     const savedProgress = localStorage.getItem(STORAGE_KEY);
     const today = new Date().toDateString();
@@ -26,15 +25,21 @@ function loadProgress() {
         tasks = initialTasks.map(initialTask => {
             const savedTask = savedTasks.find(t => t.name === initialTask.name);
             
-            // 如果有儲存的任務，則使用儲存的資料，但確保 lastCompletedDate 存在
             if (savedTask) {
-                // 如果上次完成日期不是今天，則解鎖 Checkbox
-                if (savedTask.lastCompletedDate !== today) {
-                    savedTask.checkedToday = false;
-                } else {
-                    savedTask.checkedToday = true;
+                // 確保我們只使用 lastCompletedDate 和 completed 的數值
+                const taskProgress = {
+                    completed: savedTask.completed,
+                    lastCompletedDate: savedTask.lastCompletedDate
+                };
+
+                // 【解決問題 1：隔天重置 Checkbox】
+                // 這裡的邏輯是正確的：如果上次完成日期不是今天，任務應該是未勾選狀態
+                if (taskProgress.lastCompletedDate !== today) {
+                    // 如果不是今天，則不需要 special flag，在 renderTasks 中會處理
                 }
-                return { ...initialTask, ...savedTask };
+
+                // 合併初始設定與儲存的進度
+                return { ...initialTask, ...taskProgress };
             } else {
                 return initialTask;
             }
@@ -46,45 +51,52 @@ function loadProgress() {
 
 // 2. 儲存進度到 LocalStorage
 function saveProgress() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    // 只儲存下次載入需要的資料 (name, completed, lastCompletedDate)
+    const dataToSave = tasks.map(t => ({
+        name: t.name,
+        completed: t.completed,
+        lastCompletedDate: t.lastCompletedDate
+    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
 }
 
 // 3. 渲染表格
-// 在 script.js 檔案中找到 renderTasks 函數
 function renderTasks() {
-    TABLE_BODY.innerHTML = ''; 
-    const today = new Date().toDateString();
+    TABLE_BODY.innerHTML = ''; 
+    const today = new Date().toDateString();
 
-    // 1. 過濾任務：分成今日待辦 (Pending) 和 今日已完成 (Completed)
-    const pendingTasks = tasks.filter(task => 
-        task.totalSessions === null || task.completed < task.totalSessions
-    ).sort((a, b) => a.name.localeCompare(b.name));
+    // 1. 過濾任務：分成今日待辦 (Pending) 和 今日已完成 (Completed)
+    const pendingTasks = tasks.filter(task => 
+        task.totalSessions === null || task.completed < task.totalSessions
+    ).sort((a, b) => a.name.localeCompare(b.name)); // 篩選出未達目標的任務
 
-    const completedToday = pendingTasks.filter(task => task.lastCompletedDate === today);
-    const pendingToday = pendingTasks.filter(task => task.lastCompletedDate !== today);
-    
-    // 【⭐⭐⭐ 核心修改處：將 completedToday 放在 pendingToday 的後面 ⭐⭐⭐】
-    // 這樣所有待辦任務（pendingToday）會先被渲染，接著才渲染今日已完成任務（completedToday）。
-    // 這樣「今日已完成任務」的標題就能正確出現在今日已完成的任務清單上方。
-    const allTasksToRender = [...pendingToday, ...completedToday]; 
-    // 【⭐⭐⭐ 修改結束 ⭐⭐⭐】
-    
-    let isTodayCompletedSection = false;
-    let completedSectionHeaderRendered = false;
+    // 任務分類
+    const completedToday = pendingTasks.filter(task => task.lastCompletedDate === today); // 今日已完成
+    const pendingToday = pendingTasks.filter(task => task.lastCompletedDate !== today); // 今日待辦
+    
+    // 【解決問題 2：排序問題】
+    // 調整順序：讓待辦任務先渲染，已完成任務後渲染，標題才能插在中間
+    const allTasksToRender = [...pendingToday, ...completedToday]; 
+    
+    let isTodayCompletedSection = false;
+    let completedSectionHeaderRendered = false;
 
-    allTasksToRender.forEach((task, index) => {
-        // ... (後續程式碼不變)
+    allTasksToRender.forEach((task) => {
         const row = TABLE_BODY.insertRow();
+        // 用原始任務列表的索引來確保 handleCompletion 能正確找到任務
+        const taskIndex = tasks.findIndex(t => t.name === task.name); 
+
         const isCompletedGoal = task.totalSessions !== null && task.completed >= task.totalSessions;
         const isCompletedToday = task.lastCompletedDate === today && !isCompletedGoal;
         
         // 判斷是否要開始渲染「今日已完成」部分
-        if (isCompletedToday && !isTodayCompletedSection) {
+        if (isCompletedToday && !isTodayCompletedSection && completedToday.length > 0) {
             isTodayCompletedSection = true;
         }
 
         // 渲染「今日已完成」的標題 (只渲染一次)
-        if (isTodayCompletedSection && !completedSectionHeaderRendered) {
+        // 確保標題只出現在第一個今日完成任務之前
+        if (isTodayCompletedSection && !completedSectionHeaderRendered && pendingToday.length > 0) {
              const headerRow = TABLE_BODY.insertRow();
              const headerCell = headerRow.insertCell();
              headerCell.colSpan = 4;
@@ -93,7 +105,6 @@ function renderTasks() {
              headerCell.style.backgroundColor = '#d3f9d3';
              completedSectionHeaderRendered = true;
         }
-
 
         // 設置列的樣式
         if (isCompletedGoal || isCompletedToday) {
@@ -108,8 +119,8 @@ function renderTasks() {
         
         // 預計需要幾次才能完成 (加上進度)
         const totalText = task.totalSessions === null 
-                          ? '無上限' 
-                          : `${task.completed} / ${task.totalSessions} 次`;
+                              ? '無上限' 
+                              : `${task.completed} / ${task.totalSessions} 次`;
         row.insertCell().textContent = totalText;
         
         // 完成的打勾欄位
@@ -118,15 +129,15 @@ function renderTasks() {
         
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.dataset.index = tasks.findIndex(t => t.name === task.name); // 用原始索引
+        checkbox.dataset.index = taskIndex; // 使用原始索引
         
-        // 設置 Checkbox 狀態：是否已達成目標或今日已完成
+        // 設置 Checkbox 狀態
         if (isCompletedGoal) {
             checkbox.checked = true;
-            checkbox.disabled = true;
+            checkbox.disabled = true; // 達成目標，永久鎖定
         } else if (isCompletedToday) {
             checkbox.checked = true;
-            checkbox.disabled = true;
+            checkbox.disabled = false; // 【解決問題 3：允許取消勾選】
         } else {
             checkbox.checked = false;
             checkbox.disabled = false;
@@ -138,39 +149,53 @@ function renderTasks() {
 }
 
 // 4. 處理完成打勾的邏輯 (核心功能)
-// 在 script.js 檔案中找到 handleCompletion 函數
 function handleCompletion(event) {
     const checkbox = event.target;
     const index = parseInt(checkbox.dataset.index);
     const task = tasks[index];
     const today = new Date().toDateString(); // 取得今天的日期字串
 
-    // 檢查任務是否已在今天完成過
-    if (task.lastCompletedDate === today) {
-        // 如果今天已經完成，但有人試圖再次點擊（理論上應該被 disabled），則阻止計數
-        checkbox.checked = true; // 確保它保持勾選狀態
-        checkbox.disabled = true; // 鎖定
-        return;
-    }
-    
-    // 只有在從未勾選變成勾選時才執行計數
+    // 【解決問題 3：新增取消勾選 (Unchecked) 邏輯】
     if (checkbox.checked) {
-        task.completed += 1; // 完成次數 + 1
-        task.lastCompletedDate = today; // 紀錄完成日期
-        
-        saveProgress(); // 儲存進度
-        
-        // 鎖定 Checkbox，表示今日已完成此項
-        checkbox.disabled = true; 
-        
-        showEncouragement(task); // 顯示鼓勵話語
-        
-        // 延遲幾秒後重新渲染表格，將已完成任務移至下方
-        setTimeout(() => {
-             renderTasks(); 
-             // 重置頂部訊息，顯示今日日期
-             PROGRESS_MESSAGE.textContent = `任務提醒 | ${today} 的學習計畫`; 
-        }, 3000); 
+        // --- 處理「勾選」 ---
+        // 只有當今天尚未完成時才計數
+        if (task.lastCompletedDate !== today) {
+            task.completed += 1; // 完成次數 + 1
+            task.lastCompletedDate = today; // 紀錄完成日期
+            
+            saveProgress(); // 儲存進度
+            
+            // 這次不鎖定 Checkbox，讓用戶可以取消
+            
+            showEncouragement(task); // 顯示鼓勵話語
+            
+            // 延遲幾秒後重新渲染表格，將已完成任務移至下方
+            setTimeout(() => {
+                renderTasks(); 
+                // 重置頂部訊息，顯示今日日期
+                PROGRESS_MESSAGE.textContent = `任務提醒 | ${today} 的學習計畫`; 
+            }, 3000); 
+        } else {
+            // 如果今天已經完成（代表是透過 renderTasks 渲染出來的已完成狀態），
+            // 且它在完成區被點擊，我們確保它保持勾選狀態
+            checkbox.checked = true; 
+        }
+    } else {
+        // --- 處理「取消勾選」 (Unchecked) ---
+        // 只有在上次完成日期是今天，且任務次數大於 0 時，才執行回溯
+        if (task.lastCompletedDate === today && task.completed > 0) {
+            task.completed -= 1; // 完成次數 - 1
+            task.lastCompletedDate = null; // 清除完成日期，表示今天尚未完成
+            
+            saveProgress(); // 儲存進度
+            
+            // 清除頂部訊息
+            PROGRESS_MESSAGE.textContent = `任務提醒 | ${today} 的學習計畫`; 
+            
+            // 立即重新渲染表格，將任務移回待辦區塊
+            renderTasks();
+        } 
+        // 否則，如果不滿足回溯條件（例如任務次數已為 0 或非今天完成），則不做任何事
     }
 }
 
