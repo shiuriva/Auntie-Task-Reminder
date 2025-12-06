@@ -52,23 +52,28 @@ function saveProgress() {
 // 3. 渲染表格
 // 在 script.js 檔案中找到 renderTasks 函數
 function renderTasks() {
-    TABLE_BODY.innerHTML = ''; 
-    const today = new Date().toDateString();
+    TABLE_BODY.innerHTML = ''; 
+    const today = new Date().toDateString();
 
-    // 1. 過濾任務：分成今日待辦 (Pending) 和 今日已完成 (Completed)
-    const pendingTasks = tasks.filter(task => 
-        task.totalSessions === null || task.completed < task.totalSessions
-    ).sort((a, b) => a.name.localeCompare(b.name));
+    // 1. 過濾任務：分成今日待辦 (Pending) 和 今日已完成 (Completed)
+    const pendingTasks = tasks.filter(task => 
+        task.totalSessions === null || task.completed < task.totalSessions
+    ).sort((a, b) => a.name.localeCompare(b.name));
 
-    const completedToday = pendingTasks.filter(task => task.lastCompletedDate === today);
-    const pendingToday = pendingTasks.filter(task => task.lastCompletedDate !== today);
-    
-    const allTasksToRender = [...pendingToday, ...completedToday];
-    
-    let isTodayCompletedSection = false;
-    let completedSectionHeaderRendered = false;
+    const completedToday = pendingTasks.filter(task => task.lastCompletedDate === today);
+    const pendingToday = pendingTasks.filter(task => task.lastCompletedDate !== today);
+    
+    // 【⭐⭐⭐ 核心修改處：將 completedToday 放在 pendingToday 的後面 ⭐⭐⭐】
+    // 這樣所有待辦任務（pendingToday）會先被渲染，接著才渲染今日已完成任務（completedToday）。
+    // 這樣「今日已完成任務」的標題就能正確出現在今日已完成的任務清單上方。
+    const allTasksToRender = [...pendingToday, ...completedToday]; 
+    // 【⭐⭐⭐ 修改結束 ⭐⭐⭐】
+    
+    let isTodayCompletedSection = false;
+    let completedSectionHeaderRendered = false;
 
-    allTasksToRender.forEach((task, index) => {
+    allTasksToRender.forEach((task, index) => {
+        // ... (後續程式碼不變)
         const row = TABLE_BODY.insertRow();
         const isCompletedGoal = task.totalSessions !== null && task.completed >= task.totalSessions;
         const isCompletedToday = task.lastCompletedDate === today && !isCompletedGoal;
