@@ -105,7 +105,7 @@ function handleCompletion(event) {
 
 // 5. 鼓勵話語邏輯
 function showEncouragement(task) {
-    let message;
+    let message; 
     
     if (task.totalSessions === null) {
         // 無上限任務的鼓勵
