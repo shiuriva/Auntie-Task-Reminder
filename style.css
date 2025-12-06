@@ -155,3 +155,32 @@ input[type="checkbox"]:checked::after {
         font-size: 0.85em;
     }
 }
+
+/* ... (原有的 IKEA CSS 程式碼) ... */
+
+/* -------------------------------------- */
+/* 【新增】阿姨的每日完成訊息樣式 */
+/* -------------------------------------- */
+#auntie-message {
+    width: 90%;
+    max-width: 900px;
+    margin: 40px auto;
+    text-align: center;
+}
+
+.auntie-complete-box {
+    /* 使用深藍色搭配亮黃色的邊框 */
+    background-color: var(--ikea-blue); 
+    color: var(--ikea-white);
+    padding: 30px;
+    border-radius: 8px;
+    border: 5px solid var(--ikea-yellow); /* 亮黃色外框強調 */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    font-size: 1.4em;
+    font-weight: bold;
+    line-height: 1.5;
+}
+
+.auntie-complete-box p {
+    margin: 0;
+}
