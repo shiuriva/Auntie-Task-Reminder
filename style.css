@@ -5,12 +5,13 @@
     --ikea-white: #ffffff; /* 背景白 */
     --ikea-light-grey: #f0f0f0; /* 輕微分隔線或表格底色 */
     --ikea-text: #1a1a1a; /* 標準文字顏色 */
-    --ikea-green: #67b044; /* 完成任務的輔助色 */
+    /* 調整完成任務的輔助色：使用淺黃色作為「今日已完成」區塊的背景 */
+    --ikea-light-yellow-bg: #fffbe6; 
 }
 
 /* 基礎設定：使用大量白色背景與簡約字體 */
 body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; /* 簡潔的無襯線字體 */
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     margin: 0;
     padding: 0;
     background-color: var(--ikea-white); /* 乾淨的白色背景 */
@@ -33,7 +34,19 @@ header {
 header h1 {
     margin-top: 0;
     font-size: 1.6em;
-    text-transform: uppercase; /* 簡約風格常用大寫 */
+    text-transform: uppercase;
+}
+
+/* 進度訊息 / 鼓勵話語區塊：使用亮黃色作為底色，更具鼓勵感 */
+#progress-message {
+    /* 確保只有在 JS 寫入內容時才顯示 */
+    min-height: 1.2em; 
+    padding: 10px 0;
+    margin-top: 10px;
+    background-color: var(--ikea-yellow); /* 亮黃色背景 */
+    color: var(--ikea-blue); /* 深藍色文字 */
+    font-weight: bold;
+    font-size: 1.1em;
 }
 
 /* 任務列表容器：新增最大寬度限制 */
@@ -56,14 +69,23 @@ header h1 {
 #task-table th, #task-table td {
     padding: 15px 20px; /* 增加間距 */
     text-align: left;
-    border-bottom: 1px solid var(--ikea-light-grey); /* 淺灰色分隔線 */
+    /* 這裡使用淡灰色線條，保持簡約 */
+    border-bottom: 1px solid var(--ikea-light-grey); 
+}
+
+/* 【IKEA 主題修改】任務列表表頭：使用核心藍色 */
+#task-table thead tr:first-child {
+    background-color: var(--ikea-blue);
+    color: var(--ikea-white);
 }
 
 #task-table th {
-    background-color: var(--ikea-light-grey);
-    color: var(--ikea-text);
+    background-color: var(--ikea-blue); /* 深藍色背景 */
+    color: var(--ikea-white); /* 白色文字 */
     font-weight: 600; 
     text-transform: uppercase;
+    /* 移除表頭的分隔線，保持藍色塊的完整性 */
+    border-bottom: none; 
 }
 
 /* 完成的打勾欄位樣式 */
@@ -71,31 +93,44 @@ header h1 {
     text-align: center;
 }
 
-/* 任務完成後的樣式 (已達標或今日已完成) */
+/* 任務完成後的樣式 (今日已完成任務區塊) */
+/* 這裡處理任務項目，讓今日已完成的任務行變成淺綠色背景 */
 .task-completed {
-    background-color: var(--ikea-green); /* 完成後使用穩重綠色 */
-    color: var(--ikea-white);
-    text-decoration: none; /* 移除刪除線 */
+    /* 今日已完成任務區塊的行背景色使用淡黃色 */
+    background-color: var(--ikea-light-yellow-bg) !important; 
+    color: var(--ikea-text); /* 文字使用標準黑色 */
+    text-decoration: none;
 }
 
 .task-completed td {
-     /* 確保完成列的文字顏色與背景有對比 */
-    color: var(--ikea-white) !important; 
-    border-bottom: 1px solid var(--ikea-green);
+    /* 確保文字顏色與背景有對比 */
+    color: var(--ikea-text) !important; 
+    border-bottom: 1px solid var(--ikea-light-grey) !important;
+}
+
+/* 針對 JS 插入的「今日已完成任務」標題行 */
+#task-table tr:has(h2) {
+    background-color: var(--ikea-yellow) !important; /* 使用核心黃色強調標題 */
+    color: var(--ikea-blue) !important;
+}
+
+#task-table tr:has(h2) h2 {
+    color: var(--ikea-blue) !important;
 }
 
 /* 讓 Checkbox 更貼合簡約風格 */
 input[type="checkbox"] {
     -webkit-appearance: none;
     appearance: none;
-    width: 18px;
-    height: 18px;
-    border: 2px solid var(--ikea-blue); /* 藍色邊框 */
-    border-radius: 3px;
+    width: 22px; /* 稍微放大 */
+    height: 22px;
+    border: 3px solid var(--ikea-blue); /* 藍色邊框 */
+    border-radius: 50%; /* 圓形 Checkbox，更現代簡約 */
     cursor: pointer;
     position: relative;
     top: 3px;
-    background-color: white;
+    background-color: var(--ikea-white);
+    transition: all 0.2s ease-in-out;
 }
 
 input[type="checkbox"]:checked {
@@ -105,11 +140,12 @@ input[type="checkbox"]:checked {
 
 input[type="checkbox"]:checked::after {
     content: '✔';
-    font-size: 12px;
+    font-size: 14px;
     color: var(--ikea-blue); /* 勾勾使用深藍色 */
     position: absolute;
-    left: 2px;
-    top: -1px;
+    left: 4px;
+    top: -2px;
+    font-weight: bold;
 }
 
 /* 手機適配 - 讓表格更緊湊 */
