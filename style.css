@@ -1,54 +1,69 @@
-/* 基礎重設與手機友好設定 */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f4f7f6; /* 輕微的背景色 */
-    color: #333;
-    line-height: 1.6;
-    padding-bottom: 50px; /* 底部空間 */
+/* IKEA 視覺核心色碼 (使用 CSS 變數方便管理) */
+:root {
+    --ikea-blue: #0058a3; /* 核心深藍色 */
+    --ikea-yellow: #ffda1a; /* 核心亮黃色 (強調色) */
+    --ikea-white: #ffffff; /* 背景白 */
+    --ikea-light-grey: #f0f0f0; /* 輕微分隔線或表格底色 */
+    --ikea-text: #1a1a1a; /* 標準文字顏色 */
+    --ikea-green: #67b044; /* 完成任務的輔助色 */
 }
 
-/* 標題與阿姨的角色設定 */
+/* 基礎設定：使用大量白色背景與簡約字體 */
+body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; /* 簡潔的無襯線字體 */
+    margin: 0;
+    padding: 0;
+    background-color: var(--ikea-white); /* 乾淨的白色背景 */
+    color: var(--ikea-text);
+    line-height: 1.6;
+    padding-bottom: 50px;
+}
+
+/* 標題與阿姨的角色設定：使用核心藍與黃強調 */
 header {
-    background-color: #4CAF50; /* 阿姨的溫暖色 */
-    color: white;
+    background-color: var(--ikea-blue); /* 核心深藍色 */
+    color: var(--ikea-white);
     padding: 20px;
     text-align: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    /* 加入黃色底線作為簡約的視覺區隔 */
+    border-bottom: 5px solid var(--ikea-yellow); 
 }
 
 header h1 {
     margin-top: 0;
-    font-size: 1.5em; /* 手機上適中 */
+    font-size: 1.6em;
+    text-transform: uppercase; /* 簡約風格常用大寫 */
 }
 
-/* 任務列表容器 */
+/* 任務列表容器：新增最大寬度限制 */
 .task-container {
     width: 90%;
-    margin: 20px auto;
-    overflow-x: auto; /* 確保手機上表格過長時可橫向捲動 */
+    max-width: 900px;
+    margin: 30px auto;
+    overflow-x: auto; 
 }
 
-/* 表格樣式 */
+/* 表格樣式：簡約線條，無複雜邊框 */
 #task-table {
     width: 100%;
-    border-collapse: collapse; /* 合併邊框 */
-    background-color: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    border-radius: 8px;
+    border-collapse: collapse;
+    background-color: var(--ikea-white);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); /* 非常輕微的陰影 */
+    border-radius: 4px;
 }
 
 #task-table th, #task-table td {
-    padding: 12px 15px;
+    padding: 15px 20px; /* 增加間距 */
     text-align: left;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--ikea-light-grey); /* 淺灰色分隔線 */
 }
 
 #task-table th {
-    background-color: #e8e8e8;
-    color: #555;
-    font-weight: bold;
+    background-color: var(--ikea-light-grey);
+    color: var(--ikea-text);
+    font-weight: 600; 
+    text-transform: uppercase;
 }
 
 /* 完成的打勾欄位樣式 */
@@ -56,16 +71,51 @@ header h1 {
     text-align: center;
 }
 
+/* 任務完成後的樣式 (已達標或今日已完成) */
 .task-completed {
-    background-color: #e0f7e0; /* 完成任務後給予輕微的綠色背景提示 */
-    text-decoration: line-through;
-    color: #888;
+    background-color: var(--ikea-green); /* 完成後使用穩重綠色 */
+    color: var(--ikea-white);
+    text-decoration: none; /* 移除刪除線 */
+}
+
+.task-completed td {
+     /* 確保完成列的文字顏色與背景有對比 */
+    color: var(--ikea-white) !important; 
+    border-bottom: 1px solid var(--ikea-green);
+}
+
+/* 讓 Checkbox 更貼合簡約風格 */
+input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--ikea-blue); /* 藍色邊框 */
+    border-radius: 3px;
+    cursor: pointer;
+    position: relative;
+    top: 3px;
+    background-color: white;
+}
+
+input[type="checkbox"]:checked {
+    background-color: var(--ikea-yellow); /* 打勾時變成亮黃色 */
+    border-color: var(--ikea-yellow);
+}
+
+input[type="checkbox"]:checked::after {
+    content: '✔';
+    font-size: 12px;
+    color: var(--ikea-blue); /* 勾勾使用深藍色 */
+    position: absolute;
+    left: 2px;
+    top: -1px;
 }
 
 /* 手機適配 - 讓表格更緊湊 */
 @media (max-width: 600px) {
     #task-table th, #task-table td {
-        padding: 8px 10px;
-        font-size: 0.9em;
+        padding: 10px 12px;
+        font-size: 0.85em;
     }
 }
